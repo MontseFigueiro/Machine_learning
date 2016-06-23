@@ -1,0 +1,186 @@
+---
+title: "credit_gbm"
+author: "Montse Figueiro"
+date: "23 de junio de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#TRAINING with CARET
+# Ejercicios: crear modelos para predecir las variables objetivo de alguno de estos
+   conjuntos de datos:
+   * https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset (regresi贸n)
+   * https://archive.ics.uci.edu/ml/datasets/Bank+Marketing (clasificaci贸n)
+   * https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients (clasificaci贸n)
+   * https://archive.ics.uci.edu/ml/datasets/Wine+Quality (regresi贸n)
+
+
+# Ejercicio: crear un modelo gbm a mano (con 谩rboles de rpart) 
+calculando lo residudos secuencialmente, eligiendo un lambda peque帽o, etc.
+
+# Ejercicio: 
+buscar una manera gr谩fica de explicar el modelo de cr茅dito a un 
+cliente al que se le deniega. la gente usa logisticas porque eso se interpreta
+
+https://www.datanalytics.com/2016/03/15/se-puede-explicar-la-prediccion-de-un-modelo-de-caja-negra/
+```{r}  
+library(party)
+library(randomForest)
+library(caret)
+library(e1071)    # svm
+library(gbm)      # gbm
+library(ggplot2)
+library(xlsx)
+```
+```{r}
+credit <- read.xlsx("default of credit card clients.xls",header=TRUE,sheetName = "Data")
+```
+hacemos random forest con todos los datos, la columna class aqui es el ultima default, depende de
+donde poner el punto de corte para decir si es fraude o no
+hay que ver la probabilidad de fraude, no tendria que estar por encima del 5%
+```{r}
+
+credit$default.payment.next.month <- as.factor(credit$default.payment.next.month)
+colnames(credit)[25] <- "Default"
+head(credit)
+```
+La funcion "createDataPartition" se puede utilizar para crear una muestra aleatoria 
+estratificada de los datos en conjuntos de entrenamiento y prueba :
+
+```{r}
+inTraining <- createDataPartition(credit$Default, p = .50, list = FALSE)
+training <- credit[ inTraining,]
+testing  <- credit[-inTraining,]
+dim(training)
+```
+
+Repite k-veces la validaci髇 cruzada. Para especificar el tipo de remuestreo:
+##La funcion trainControl:
+El trainControl genera par醡etros que controlan m醩 a fondo c髆o se crean modelos, con posibles valores:
+* method : El m閠odo de remuestreo : "boot", "cv", "LOOCV", "LGOCV", "repeatedcv", "timeslice", "none" and "oob" . El 鷏timo valor , fuera de la bolsa de estimaciones , s髄o puede ser utilizado por los random forest, bagged trees, bagged earth, bagged flexible discriminant analysis, or conditional tree forest models . GBM modelos no est醤 incluidos ( el mantenedor del paquete GBM ha indicado que no ser韆 una buena idea elegir valores de los par醡etros de ajuste en base a las estimaciones de error modelo fuera de banda con 醨boles Mejorado) . Tambi閚, para dejar uno de las cruzadas a cabo la validaci髇, no hay estimaciones de incertidumbre se refieren a las medidas de rendimiento resampled.
+* Number and repeats: number controla con el n鷐ero de pliegues en K - veces validaci髇 cruzada o el n鷐ero de iteraciones de remuestreo. repeats hace repetir K - veces la validaci髇 cruzada . Supongamos que method = " repeatedcv " , number = 10 y repeats = 3 , a continuaci髇, tres tiradas de 10 veces las validaciones cruzadas se utilizan como el esquema de remuestreo .
+* verboseIter: A logical for printing a training log.
+* returnData: A logical for saving the data into a slot called trainingData.
+* p: For leave-group out cross-validation: the training percentage
+* For method = "timeslice", trainControl has options initialWindow, horizon and fixedWindow that govern how cross-validation can be used for time series data.
+* classProbs: a logical value determining whether class probabilities should be computed for held-out samples during resample.
+* index and indexOut: optional lists with elements for each resampling iteration. Each list element is the sample rows used for training at that iteration or should be held-out. When these values are not specified, train will generate them.
+* summaryFunction: a function to compute alternate performance summaries.
+* selectionFunction: a function to choose the optimal tuning parameters. and examples.
+* PCAthresh, ICAcomp and k: these are all options to pass to the preProcess function (when used).
+* returnResamp: a character string containing one of the following values: "all", "final" or "none". This specifies how much of the resampled performance measures to save.
+* allowParallel: a logical that governs whether train should use parallel processing (if availible).
+```{r}
+train.control <- trainControl(method = "cv", number = 10,repeats = 10)
+train.control
+```
+Los dos primeros argumentos para entrenar son los objetos de predicci髇 y 
+el resultado de datos , respectivamente. El tercer argumento , el m閠odo , 
+especifica el tipo de modelo. 
+Para ilustrar esto, vamos a ajustar un modelo de 醨bol impulsado a trav閟 del paquete de GBM . 
+La sintaxis b醩ica para el montaje de este modelo usando 
+repetida de validaci髇 cruzada es:
+```{r}
+gbm1 <- train(Default ~ ., data = training,
+                 method = "gbm",
+                 trControl = train.control,
+                 ## Esta es una opcion que pasa a trav閟 de gbm
+                 verbose = FALSE)
+gbm1
+```
+```{r}
+gbm2 <- train(Default ~ ., data = training,
+              method = "gbm",
+              trControl = train.control,
+              ## Esta es una opcion que pasa a trav閟 de gbm
+              verbose = FALSE)
+
+gbm2
+```
+Para un modelo GBM tenemos tres par醡etros de ajuste:
+  
+
+* n鷐ero de iteraciones, es decir, 醨boles, (llamados n.trees en la funci髇 de GBM)
+* complejidad del 醨bol, llamado interaction.depth
+* tasa de aprendizaje : la rapidez con que se adapta el algoritmo , llamado shrinkage
+* el n鷐ero m韓imo de muestras del conjunto de entrenamiento en un nodo para iniciar la divisi髇 ( n.minobsinnode )
+
+#interpretacion
+
+"train" puede pre - procesar los datos de varias maneras antes de 
+ajustar el modelo . La funci髇 "preProcess" se utiliza de forma autom醫ica. Esta funci髇 se puede utilizar
+para el centrado y la escala, la imputaci髇 ( ver detalles m醩 abajo ), la aplicaci髇 de la transformaci髇 
+signo y extracci髇 de caracter韘ticas espaciales a trav閟 de an醠isis de componentes principales o an醠isis de 
+componentes independientes.
+La funci髇 train tiene un argumento llamado preProcess toma un character string, para imputaci髇 hay 3 m閠odos:
+
+* k-vecinos:toma una muestra con los valores perdidos y encuentra el k muestras m醩 cercanas en el conjunto 
+de entrenamiento . El promedio de los valores del conjunto de entrenamiento k para que el predictor se utilizan 
+como un sustituto de los datos originales . Al calcular las distancias a las muestras del conjunto de entrenamiento
+los predictores utilizados en el c醠culo son los que tienen valores perdidos para esa muestra y no hay valores 
+que faltan en el conjunto de entrenamiento.
+
+* Otro m閠odo consiste en ajustar un modelo de 醨bol en bolsas para cada predictor usando las muestras del 
+conjunto de entrenamiento . Esto suele ser un modelo bastante preciso y puede manejar los valores perdidos .
+Cuando un predictor para una muestra requiere la imputaci髇, los valores de los otros predictores son alimentados
+a trav閟 del 醨bol bolsa y la predicci髇 se usa como el nuevo valor. Este modelo puede tener coste computacional 
+significativa .
+
+* la mediana de los valores del conjunto de entrenamiento del predictor puede ser utilizado para estimar los datos faltantes.
+
+##Alternative tuning Grids
+
+El tuneGrid argumento puede tener una trama de datos con columnas para cada par醡etro de ajuste . Los nombres de 
+columna deben ser los mismos que los argumentos de la funci髇 de ajuste . Para el ejemplo de RDA se ha mencionado 
+anteriormente , los nombres ser韆n gamma y lambda. tren sintonizar el modelo sobre cada combinaci髇 de valores de 
+las filas .
+```{r}
+grid <- expand.grid(n.trees = 500 * 1:4,#num 1000,2000,3000,4000
+                    interaction.depth = 2 * (1:4),#complejidad del arbol, va a probar 2,4,6,y 8
+                    shrinkage = 0.001,
+                    n.minobsinnode = 10)#minimo observ nodos en 10
+grid
+```
+```{r}
+model.gbm <- train(as.character(Default) ~ ., data = training, 
+                   trControl = train.control, #lo he definido arriba
+                   tuneGrid = grid,#optimizacion grid que he fabricalo
+                   method = "gbm")#modelo aplicado
+model.gbm
+```
+Para boosted tree model, podemos fijar la tasa de aprendizaje y evaluar m醩 de tres valores de "n.trees":
+grid son los valores que ha explorado,gbm admite 4 parametros que se va a optimizar
+minimo observ nodos en 10
+
+me va a hacer el modelo 10 veces, para 4 arboles distintos, va a ajustar el modelo 160 veces
+
+##Plotting muestreo
+
+La funci髇 de gr醘icos se puede utilizar para examinar la relaci髇 entre las estimaciones de rendimiento
+y los par醡etros de ajuste . Por ejemplo , un simple invocaci髇 de la funci髇 muestra los resultados de la 
+primera medida de la ejecuci髇 :
+
+```{r}
+trellis.par.set(caretTheme())
+plot(model.gbm)
+```
+```{r}
+plot(model.gbm, metric = "Kappa")
+```
+```{r}
+trellis.par.set(caretTheme())
+plot(model.gbm, plotType = "level",
+     scales = list(x = list(rot = 90)))
+```
+```{r}
+ggplot(model.gbm)
+```
+##summarize results
+no hay preproceso, tama駉 conjuntos de entrenamiento, 1372-1235 obs.
+todos los valores del grid, accuracy es el porcentaje de aciertos.
+para distintos valores de numero de arboles que porcentaje de acierto tienes. Esto sube y luego decrece,
+en este ejemplo sigue creciendo, deberiamos repetir el ejercicio empezando en 3000 hasta 9000...
+
+table(billetes$class, predict(model.gbm, billetes))
