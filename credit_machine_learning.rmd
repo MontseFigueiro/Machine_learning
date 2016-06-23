@@ -8,8 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-#TRAINING with CARET
-# Ejercicios: crear modelos para predecir las variables objetivo de alguno de estos
+##TRAINING with CARET
+###Ejercicios: crear modelos para predecir las variables objetivo de alguno de estos
    conjuntos de datos:
    * https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset (regresiÃ³n)
    * https://archive.ics.uci.edu/ml/datasets/Bank+Marketing (clasificaciÃ³n)
@@ -17,10 +17,10 @@ knitr::opts_chunk$set(echo = TRUE)
    * https://archive.ics.uci.edu/ml/datasets/Wine+Quality (regresiÃ³n)
 
 
-# Ejercicio: crear un modelo gbm a mano (con Ã¡rboles de rpart) 
+###Ejercicio: crear un modelo gbm a mano (con Ã¡rboles de rpart) 
 calculando lo residudos secuencialmente, eligiendo un lambda pequeÃ±o, etc.
 
-# Ejercicio: 
+###Ejercicio: 
 buscar una manera grÃ¡fica de explicar el modelo de crÃ©dito a un 
 cliente al que se le deniega. la gente usa logisticas porque eso se interpreta
 
@@ -57,7 +57,7 @@ dim(training)
 ```
 
 Repite k-veces la validación cruzada. Para especificar el tipo de remuestreo:
-##La funcion trainControl:
+###La funcion trainControl:
 El trainControl genera parámetros que controlan más a fondo cómo se crean modelos, con posibles valores:
 * method : El método de remuestreo : "boot", "cv", "LOOCV", "LGOCV", "repeatedcv", "timeslice", "none" and "oob" . El último valor , fuera de la bolsa de estimaciones , sólo puede ser utilizado por los random forest, bagged trees, bagged earth, bagged flexible discriminant analysis, or conditional tree forest models . GBM modelos no están incluidos ( el mantenedor del paquete GBM ha indicado que no sería una buena idea elegir valores de los parámetros de ajuste en base a las estimaciones de error modelo fuera de banda con árboles Mejorado) . También, para dejar uno de las cruzadas a cabo la validación, no hay estimaciones de incertidumbre se refieren a las medidas de rendimiento resampled.
 * Number and repeats: number controla con el número de pliegues en K - veces validación cruzada o el número de iteraciones de remuestreo. repeats hace repetir K - veces la validación cruzada . Supongamos que method = " repeatedcv " , number = 10 y repeats = 3 , a continuación, tres tiradas de 10 veces las validaciones cruzadas se utilizan como el esquema de remuestreo .
@@ -90,24 +90,15 @@ gbm1 <- train(Default ~ ., data = training,
                  verbose = FALSE)
 gbm1
 ```
-```{r}
-gbm2 <- train(Default ~ ., data = training,
-              method = "gbm",
-              trControl = train.control,
-              ## Esta es una opcion que pasa a través de gbm
-              verbose = FALSE)
-
-gbm2
-```
 Para un modelo GBM tenemos tres parámetros de ajuste:
   
 
 * número de iteraciones, es decir, árboles, (llamados n.trees en la función de GBM)
 * complejidad del árbol, llamado interaction.depth
 * tasa de aprendizaje : la rapidez con que se adapta el algoritmo , llamado shrinkage
-* el número mínimo de muestras del conjunto de entrenamiento en un nodo para iniciar la división ( n.minobsinnode )
+* el número mínimo de muestras del conjunto de entrenamiento en un nodo para iniciar la división ( n.minobsinnode)
 
-#interpretacion
+###interpretacion
 
 "train" puede pre - procesar los datos de varias maneras antes de 
 ajustar el modelo . La función "preProcess" se utiliza de forma automática. Esta función se puede utilizar
@@ -130,7 +121,7 @@ significativa .
 
 * la mediana de los valores del conjunto de entrenamiento del predictor puede ser utilizado para estimar los datos faltantes.
 
-##Alternative tuning Grids
+###Alternative tuning Grids
 
 El tuneGrid argumento puede tener una trama de datos con columnas para cada parámetro de ajuste . Los nombres de 
 columna deben ser los mismos que los argumentos de la función de ajuste . Para el ejemplo de RDA se ha mencionado 
@@ -156,7 +147,7 @@ minimo observ nodos en 10
 
 me va a hacer el modelo 10 veces, para 4 arboles distintos, va a ajustar el modelo 160 veces
 
-##Plotting muestreo
+###Plotting muestreo
 
 La función de gráficos se puede utilizar para examinar la relación entre las estimaciones de rendimiento
 y los parámetros de ajuste . Por ejemplo , un simple invocación de la función muestra los resultados de la 
@@ -177,7 +168,7 @@ plot(model.gbm, plotType = "level",
 ```{r}
 ggplot(model.gbm)
 ```
-##summarize results
+###summarize results
 no hay preproceso, tamaño conjuntos de entrenamiento, 1372-1235 obs.
 todos los valores del grid, accuracy es el porcentaje de aciertos.
 para distintos valores de numero de arboles que porcentaje de acierto tienes. Esto sube y luego decrece,
